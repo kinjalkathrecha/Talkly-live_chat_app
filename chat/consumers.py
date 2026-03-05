@@ -13,6 +13,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        
+        # Send connection confirmation with channel name
+        await self.send(text_data=json.dumps({
+            "type": "connection_established",
+            "channel_name": self.channel_name
+        }))
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -22,11 +28,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "chat_message",
-                "message": message
+                "message": message,
+                "sender_channel_name": self.channel_name
             }
         )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
-            "message": event["message"]
+            "type": "chat_message",
+            "message": event["message"],
+            "sender_channel_name": event["sender_channel_name"]
         }))
