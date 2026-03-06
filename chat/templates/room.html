@@ -134,7 +134,12 @@
             </div>
 
             {% for message in messages %}
-            <div class="message received">
+            <div class="message {% if message.user == request.user %}sent{% else %}received{% endif %}">
+                {% if message.user != request.user %}
+                <div class="small fw-bold mb-1" style="font-size: 0.75rem; opacity: 0.8;">
+                    {{ message.user.username|default:"Anonymous" }}
+                </div>
+                {% endif %}
                 {{ message.content }}
             </div>
             {% endfor %}
@@ -185,10 +190,15 @@
 
         if (data.type === 'chat_message') {
             const messageDiv = document.createElement('div');
-            // Compare sender channel with our own
             const isMe = data.sender_channel_name === myChannelName;
             messageDiv.className = 'message ' + (isMe ? 'sent' : 'received');
-            messageDiv.innerText = data.message;
+
+            let messageHtml = '';
+            if (!isMe) {
+                messageHtml += `<div class="small fw-bold mb-1" style="font-size: 0.75rem; opacity: 0.8;">${data.user}</div>`;
+            }
+            messageHtml += data.message;
+            messageDiv.innerHTML = messageHtml;
 
             chatLog.appendChild(messageDiv);
             scrollToBottom();
