@@ -132,6 +132,12 @@
                     Encryption active. Be respectful in {{ room_name }}.
                 </span>
             </div>
+
+            {% for message in messages %}
+            <div class="message received">
+                {{ message.content }}
+            </div>
+            {% endfor %}
         </div>
 
         <div class="chat-footer shadow-sm">
@@ -166,6 +172,7 @@
     function scrollToBottom() {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
+    scrollToBottom();
 
     socket.onmessage = function (e) {
         const data = JSON.parse(e.data);
