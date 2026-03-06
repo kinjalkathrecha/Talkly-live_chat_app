@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-md-5">
+            <div class="card card-premium border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-block p-3 rounded-circle mb-3" 
+                             style="background: rgba(99, 102, 241, 0.1);">
+                            <span style="font-size: 2rem;">🔐</span>
+                        </div>
+                        <h2 class="fw-bold">Welcome Back</h2>
+                        <p class="text-muted">Log in to continue your conversations.</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {# Handle non-field errors (like wrong password/username) #}
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">
+                            {{ form.non_field_errors|first }}
+                        </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-uppercase">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="text-danger small mt-1" style="font-size: 0.8rem;">
+                                {{ field.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-2" 
+                                style="border-radius: 0.75rem; background-color: #6366f1; border: none;">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <p class="text-muted small mb-0">Don't have an account? 
+                            <a href="{% url 'signup' %}" class="fw-bold text-primary text-decoration-none">Create one</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Reuse your exact styling for consistency */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .btn-primary:hover {
+        background-color: #4f46e5 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+</style>
+{% endblock %}

@@ -68,10 +68,37 @@
 
     <nav class="navbar navbar-expand-lg navbar-light navbar-custom sticky-top mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/chat/">💬 TALKLY</a>
+            <a class="navbar-brand fw-bold" href="{% url 'index' %}">💬 TALKLY</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item me-3">
+                        <span class="small text-muted">Signed in as </span>
+                        <span class="fw-bold text-primary">{{ user.username }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="btn btn-sm btn-outline-danger rounded-pill px-3">Logout</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li class="nav-item me-2">
+                        <a href="{% url 'login' %}"
+                            class="btn btn-sm btn-link text-decoration-none text-muted">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'signup' %}" class="btn btn-sm btn-primary rounded-pill px-4">Sign Up</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </nav>
-
     <main>
         {% block content %}{% endblock %}
     </main>
