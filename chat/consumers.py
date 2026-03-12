@@ -65,7 +65,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = self.scope["user"]
 
         if message:
-            await self.save_message(self.room_name, message, user)
+            saved_msg = await self.save_message(self.room_name, message, user)
 
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -73,16 +73,60 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "type": "chat_message",
                     "message": message,
                     "user": user.username if user.is_authenticated else "Anonymous",
+                    "id": saved_msg.id,
+                    "status_icon_html": await self.get_message_icon(saved_msg.id),
                     "sender_channel_name": self.channel_name
                 }
             )
+        
+        elif data.get("type") == "message_delivered":
+            message_id = data.get("message_id")
+            icon_html = await self.update_message_status(message_id, "delivered")
+            if icon_html:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "message_status_update",
+                        "message_id": message_id,
+                        "status": "delivered",
+                        "status_icon_html": icon_html,
+                        "user": user.username
+                    }
+                )
+
+        elif data.get("type") == "message_seen":
+            message_id = data.get("message_id")
+            icon_html = await self.update_message_status(message_id, "seen")
+            if icon_html:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "message_status_update",
+                        "message_id": message_id,
+                        "status": "seen",
+                        "status_icon_html": icon_html,
+                        "user": user.username
+                    }
+                )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat_message",
             "message": event["message"],
             "user": event["user"],
+            "id": event["id"],
+            "status": "sent",
+            "status_icon_html": event["status_icon_html"],
             "sender_channel_name": event["sender_channel_name"]
+        }))
+
+    async def message_status_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "message_status_update",
+            "message_id": event["message_id"],
+            "status": event.get("status"),
+            "status_icon_html": event["status_icon_html"],
+            "user": event["user"]
         }))
 
     async def user_status(self, event):
@@ -111,9 +155,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def save_message(self, room_name, content, user):
         room, created = Room.objects.get_or_create(name=room_name)
         if user.is_authenticated:
-            Message.objects.create(room=room, content=content, user=user)
+            return Message.objects.create(room=room, content=content, user=user)
         else:
-            Message.objects.create(room=room, content=content)
+            return Message.objects.create(room=room, content=content)
+
+    @database_sync_to_async
+    def get_message_icon(self, message_id):
+        try:
+            return Message.objects.get(id=message_id).status_icon_html
+        except Message.DoesNotExist:
+            return ""
+
+    @database_sync_to_async
+    def update_message_status(self, message_id, status):
+        try:
+            message = Message.objects.get(id=message_id)
+            updated = False
+            # Only upgrade status, don't downgrade
+            if status == 'delivered' and message.status == 'sent':
+                message.status = status
+                message.delivered_at = timezone.now()
+                message.save()
+                updated = True
+            elif status == 'seen' and message.status in ['sent', 'delivered']:
+                message.status = status
+                if not message.delivered_at:
+                    message.delivered_at = timezone.now()
+                message.seen_at = timezone.now()
+                message.save()
+                updated = True
+            
+            if updated:
+                return message.status_icon_html
+            return None
+        except Message.DoesNotExist:
+            return None
 
     @database_sync_to_async
     def update_user_status(self, is_online):

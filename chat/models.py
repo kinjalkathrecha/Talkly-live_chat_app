@@ -35,12 +35,31 @@ class Message(models.Model):
     )
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+ 
+    STATUS_CHOICES = (
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('seen', 'Seen'),
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("timestamp",)
 
+    @property
+    def status_icon_html(self):
+        if self.status == 'sent':
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/></svg>'
+        elif self.status == 'delivered':
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0l7-7zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0z"/><path d="m5.354 7.146.896.897-.707.707-.897-.896a.5.5 0 1 1 .708-.708z"/></svg>'
+        elif self.status == 'seen':
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="15" fill="#80ccff" viewBox="0 0 16 16"><path d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0l7-7zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0z"/><path d="m5.354 7.146.896.897-.707.707-.897-.896a.5.5 0 1 1 .708-.708z"/></svg>'
+        return ''
+
     def __str__(self):
-        return f"{self.user.username if self.user else 'Anonymous'}: {self.content[:20]}"
+        return f"{self.user.username if self.user else 'Anonymous'} ({self.status}): {self.content[:20]}"
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):

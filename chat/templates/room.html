@@ -122,6 +122,27 @@
     }
     .status-online { background-color: #22c55e; }
     .status-offline { background-color: #cbd5e1; }
+
+    .status-indicator {
+        font-size: 0.7rem;
+        margin-left: 0.5rem;
+        opacity: 0.7;
+        float: right;
+        margin-top: 0.25rem;
+    }
+
+    .message.sent .status-indicator {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .message.received .status-indicator {
+        color: #64748b;
+    }
+
+    .status-icon {
+        display: inline-flex;
+        align-items: center;
+    }
 </style>
 
 <div class="container">
@@ -155,13 +176,22 @@
             </div>
 
             {% for message in messages %}
-            <div class="message {% if message.user == request.user %}sent{% else %}received{% endif %}">
+            <div class="message {% if message.user == request.user %}sent{% else %}received{% endif %}" 
+                 data-id="{{ message.id }}" 
+                 data-status="{{ message.status }}">
                 {% if message.user != request.user %}
                 <div class="small fw-bold mb-1" style="font-size: 0.75rem; opacity: 0.8;">
                     {{ message.user.username|default:"Anonymous" }}
                 </div>
                 {% endif %}
-                {{ message.content }}
+                <div class="content">{{ message.content }}</div>
+                <div class="status-indicator">
+                    {% if message.user == request.user %}
+                        <span class="status-icon" id="status-icon-{{ message.id }}">
+                            {{ message.status_icon_html|safe }}
+                        </span>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -206,6 +236,20 @@
         if (data.type === 'connection_established') {
             myChannelName = data.channel_name;
             statusEl.innerHTML = '<span class="text-success">●</span> Live';
+            
+            // Send delivered/seen ACKs for existing messages now that we're connected
+            const receivedMessages = document.querySelectorAll('.message.received[data-status="sent"]');
+            receivedMessages.forEach(msg => {
+                const msgId = msg.getAttribute('data-id');
+                socket.send(JSON.stringify({
+                    'type': 'message_delivered',
+                    'message_id': msgId
+                }));
+                msg.setAttribute('data-status', 'delivered');
+            });
+            if (document.hasFocus()) {
+                markAllAsSeen();
+            }
             return;
         }
 
@@ -213,16 +257,46 @@
             const messageDiv = document.createElement('div');
             const isMe = data.sender_channel_name === myChannelName;
             messageDiv.className = 'message ' + (isMe ? 'sent' : 'received');
+            messageDiv.setAttribute('data-id', data.id);
+            messageDiv.setAttribute('data-status', 'sent');
 
             let messageHtml = '';
             if (!isMe) {
                 messageHtml += `<div class="small fw-bold mb-1" style="font-size: 0.75rem; opacity: 0.8;">${data.user}</div>`;
             }
-            messageHtml += data.message;
+            messageHtml += `<div class="content">${data.message}</div>`;
+            messageHtml += `<div class="status-indicator"><span class="status-icon" id="status-icon-${data.id}">${isMe ? data.status_icon_html : ''}</span></div>`;
             messageDiv.innerHTML = messageHtml;
 
             chatLog.appendChild(messageDiv);
             scrollToBottom();
+
+            // Send delivered ACK if message received from others
+            if (!isMe) {
+                socket.send(JSON.stringify({
+                    'type': 'message_delivered',
+                    'message_id': data.id
+                }));
+                // Check if page is focused to send seen ACK immediately
+                if (document.hasFocus()) {
+                    socket.send(JSON.stringify({
+                        'type': 'message_seen',
+                        'message_id': data.id
+                    }));
+                }
+            }
+        }
+
+        if (data.type === 'message_status_update') {
+            const messageEl = document.querySelector(`.message[data-id="${data.message_id}"]`);
+            if (messageEl) {
+                const statusIcon = messageEl.querySelector('.status-icon');
+                if (statusIcon) {
+                    statusIcon.innerHTML = data.status_icon_html;
+                }
+                // Sync data-status attribute for local tracking (markAllAsSeen uses this)
+                messageEl.setAttribute('data-status', data.status);
+            }
         }
 
         if (data.type === 'user_status') {
@@ -259,5 +333,20 @@
 
         input.value = "";
     };
+
+    // Send seen ACK for existing messages and when window is focused
+    function markAllAsSeen() {
+        const receivedMessages = document.querySelectorAll('.message.received[data-status="sent"], .message.received[data-status="delivered"]');
+        receivedMessages.forEach(msg => {
+            const msgId = msg.getAttribute('data-id');
+            socket.send(JSON.stringify({
+                'type': 'message_seen',
+                'message_id': msgId
+            }));
+            msg.setAttribute('data-status', 'seen');
+        });
+    }
+
+    window.addEventListener('focus', markAllAsSeen);
 </script>
 {% endblock %}
