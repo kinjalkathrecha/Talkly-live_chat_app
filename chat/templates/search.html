@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-premium">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-4">Find People</h3>
+
+                    <form method="GET" action="{% url 'search_users' %}" class="mb-4">
+                        <div class="input-group input-group-lg shadow-sm">
+                            <input type="text" name="q" value="{{ query }}" class="form-control border-0"
+                                placeholder="Search by username..." style="border-radius: 0.75rem 0 0 0.75rem;">
+                            <button class="btn btn-primary px-4" type="submit"
+                                style="border-radius: 0 0.75rem 0.75rem 0;">Search</button>
+                        </div>
+                    </form>
+
+                    <div class="user-list mt-4">
+                        {% for user in users %}
+                        <div class="d-flex align-items-center justify-content-between p-3 mb-3 bg-light rounded-4 transition-all hover-scale"
+                            style="transition: transform 0.2s;">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar me-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 45px; height: 45px; font-weight: 600;">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                                    <small class="text-muted">Registered user</small>
+                                </div>
+                            </div>
+                            <a href="{% url 'start_dm' user.username %}"
+                                class="btn btn-sm btn-primary rounded-pill px-4">Message</a>
+                        </div>
+                        {% empty %}
+                        {% if query %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">No users found matching "{{ query }}"</p>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">Type a name to find people to talk to.</p>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}

@@ -6,10 +6,18 @@ import json
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        self.user = self.scope["user"]
+        
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+        
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{self.room_name}"
 
-        # Join room group
+        # Fetch room to check privacy
+        await self.verify_room_access()
+        
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -17,14 +25,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
         
-        # Send connection confirmation with channel name
         await self.send(text_data=json.dumps({
             "type": "connection_established",
             "channel_name": self.channel_name
         }))
 
     async def disconnect(self, close_code):
-        # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -35,10 +41,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = data["message"]
         user = self.scope["user"]
 
-        # Save message to database
         await self.save_message(self.room_name, message, user)
 
-        # Send message to room group
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -58,6 +62,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "sender_channel_name": event["sender_channel_name"]
         }))
 
+    async def verify_room_access(self):
+        access_granted = await self.check_access(self.room_name, self.user)
+        if not access_granted:
+            await self.close()
+
+    @database_sync_to_async
+    def check_access(self, room_name, user):
+        try:
+            room = Room.objects.get(name=room_name)
+            if room.is_private:
+                return user in room.participants.all()
+            return True
+        except Room.DoesNotExist:
+            return True 
+        
     @database_sync_to_async
     def save_message(self, room_name, content, user):
         room, created = Room.objects.get_or_create(name=room_name)
