@@ -112,6 +112,16 @@
         justify-content: space-between;
         margin-bottom: 0.5rem;
     }
+    
+    .status-dot {
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-online { background-color: #22c55e; }
+    .status-offline { background-color: #cbd5e1; }
 </style>
 
 <div class="container">
@@ -119,10 +129,21 @@
         <div class="room-header px-2">
             <div>
                 <h5 class="mb-0 fw-bold">{{ room_name }}</h5>
-                <span class="small text-muted" id="connection-status"><span class="text-warning">●</span>
-                    Connecting...</span>
+                <div id="participants-status">
+                    {% for participant in participants %}
+                        {% if participant != request.user %}
+                            <span class="small text-muted me-2" id="status-{{ participant.username }}">
+                                <span class="status-dot {% if participant.profile.is_online %}status-online{% else %}status-offline{% endif %}"></span>
+                                {{ participant.username }} ({{ participant.profile.is_online|yesno:"Online,Offline" }})
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="small text-muted" id="connection-status">
+                        <span class="text-warning">●</span> Connecting...
+                    </span>
+                </div>
             </div>
-            <a href={% url 'index' %} class="btn btn-sm btn-outline-secondary rounded-pill px-3">Leave Room</a>
+            <a href="{% url 'index' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Leave Room</a>
         </div>
 
         <div id="chat-log">
@@ -184,7 +205,7 @@
 
         if (data.type === 'connection_established') {
             myChannelName = data.channel_name;
-            statusEl.innerHTML = '<span class="text-success">●</span> Live Connection';
+            statusEl.innerHTML = '<span class="text-success">●</span> Live';
             return;
         }
 
@@ -202,6 +223,15 @@
 
             chatLog.appendChild(messageDiv);
             scrollToBottom();
+        }
+
+        if (data.type === 'user_status') {
+            const statusBox = document.getElementById(`status-${data.user}`);
+            if (statusBox) {
+                const dot = statusBox.querySelector('.status-dot');
+                dot.className = `status-dot ${data.status === 'online' ? 'status-online' : 'status-offline'}`;
+                statusBox.innerHTML = `<span class="${dot.className}"></span> ${data.user} (${data.status === 'online' ? 'Online' : 'Offline'})`;
+            }
         }
     };
 

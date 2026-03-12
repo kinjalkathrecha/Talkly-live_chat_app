@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from .models import Room
+from .models import Room, UserProfile
 
 # Create your views here.
 @login_required
@@ -24,9 +24,12 @@ def room(request, room_name):
     if messages.count() > 50:
         messages = messages[messages.count()-50:]
 
+    participants = room.participants.all() if room.is_private else []
+
     return render(request, "room.html", {
         "room_name": room_name,
         "messages": messages,
+        "participants": participants,
     })
 
 @login_required
@@ -58,9 +61,9 @@ def signup(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            UserProfile.objects.get_or_create(user=user)
             login(request, user)
             return redirect('index')
     else:
         form = UserCreationForm()
-    return render(request, 'signup.html', {'form': form})
-    
+    return render(request, 'registration/signup.html', {'form': form})
