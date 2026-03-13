@@ -12,6 +12,15 @@ class Room(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def last_message(self):
+        return self.messages.order_by('-timestamp').first()
+
+    def get_other_user(self, current_user):
+        if self.is_private:
+            return self.participants.exclude(id=current_user.id).first()
+        return None
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     is_online = models.BooleanField(default=False)

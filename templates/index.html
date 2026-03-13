@@ -1,68 +1,122 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
-        <div class="col-md-5">
-            <div class="card card-premium border-0 shadow-lg overflow-hidden">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <div class="d-inline-block p-3 rounded-circle mb-3"
-                            style="background: rgba(99, 102, 241, 0.1);">
-                            <span style="font-size: 2rem;">🚀</span>
-                        </div>
-                        <h2 class="fw-bold">Ready to Talk?</h2>
-                        <p class="text-muted">Enter a room name below to join the conversation in real-time.</p>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="room-name-input"
-                            class="form-label small fw-semibold text-uppercase tracking-wider">Room Identifier</label>
-                        <input id="room-name-input" type="text"
-                            class="form-control form-control-lg border-light-subtle shadow-sm"
-                            style="border-radius: 0.75rem;">
-                    </div>
-
-                    <button id="room-name-submit" class="btn btn-primary btn-lg w-100 py-3" type="button"
-                        style="border-radius: 0.75rem;">
-                        Join Room
-                    </button>
-
-                    
+<div class="container py-4">
+    <div class="row g-0 rounded-4 shadow-lg bg-white overflow-hidden border" style="height: calc(100vh - 120px); max-width: 1100px; margin: 0 auto;">
+        <!-- Sidebar -->
+        <div class="col-md-4 col-lg-4 border-end d-flex flex-column bg-white">
+            <div class="p-4 border-bottom">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h4 class="fw-bold mb-0">Talkly</h4>
+                </div>
+                <!-- Search -->
+                <div class="input-group input-group-sm rounded-pill bg-light border-0 px-2 py-1">
+                    <span class="input-group-text bg-transparent border-0 text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="contact-search" class="form-control bg-transparent border-0 shadow-none" placeholder="Search chats or contacts...">
                 </div>
             </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-pills nav-fill px-3 py-2 border-bottom small gap-2" id="dashboardTabs">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-pill py-1" data-bs-toggle="pill" data-bs-target="#chats-list">Chats</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill py-1 text-muted" data-bs-toggle="pill" data-bs-target="#contacts-list">Contacts</button>
+                </li>
+            </ul>
+
+            <!-- Lists -->
+            <div class="tab-content flex-grow-1 overflow-y-auto">
+                <!-- Recent Chats -->
+                <div class="tab-pane fade show active" id="chats-list">
+                    {% for item in recent_chats %}
+                    <a href="{% url 'room' item.room.name %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
+                        <div class="position-relative me-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+                                {{ item.other_user.username|slice:":1"|upper }}
+                            </div>
+                            {% if item.other_user.profile.is_online %}
+                            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" style="width: 12px; height: 12px;"></span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-dark text-truncate">{{ item.other_user.username }}</h6>
+                                <small class="text-muted">{{ item.last_message.timestamp|date:"H:i" }}</small>
+                            </div>
+                            <p class="mb-0 text-muted small text-truncate">
+                                {% if item.last_message.user == request.user %}You: {% endif %}
+                                {{ item.last_message.content }}
+                            </p>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="p-5 text-center text-muted small">No recent chats.</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Contacts -->
+                <div class="tab-pane fade" id="contacts-list">
+                    {% for contact in contacts %}
+                    <a href="{% url 'start_dm' contact.username %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
+                        <div class="position-relative me-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-secondary fw-bold bg-light border" style="width: 48px; height: 48px;">
+                                {{ contact.username|slice:":1"|upper }}
+                            </div>
+                            {% if contact.profile.is_online %}
+                            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" style="width: 12px; height: 12px;"></span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0 fw-bold text-dark">{{ contact.username }}</h6>
+                            <small class="text-muted">Start chatting</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Empty State -->
+        <div class="col-md-8 col-lg-8 d-none d-md-flex flex-column align-items-center justify-content-center bg-light p-5 text-center">
+            <div class="p-4 bg-white rounded-4 shadow-sm mb-4" style="font-size: 3rem;">✉️</div>
+            <h3 class="fw-bold">Your Messages</h3>
+            <p class="text-muted max-width-400">Select a chat to start messaging or search for your contacts to start something new.</p>
+            <button class="btn btn-primary rounded-pill px-4 py-2 mt-3" onclick="document.querySelector('[data-bs-target=\'#contacts-list\']').click()">
+                New Conversation
+            </button>
         </div>
     </div>
 </div>
 
+<style>
+    .hover-bg-light:hover { background-color: #f8fafc; }
+    .max-width-400 { max-width: 400px; }
+    .min-width-0 { min-width: 0; }
+</style>
+
 <script>
-    const input = document.querySelector('#room-name-input');
-    input.focus();
+    const tabs = document.querySelectorAll('#dashboardTabs .nav-link');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function (event) {
+            tabs.forEach(t => t.classList.add('text-muted'));
+            event.target.classList.remove('text-muted');
+        });
+    });
 
-    // Add subtle animation on focus
-    input.onfocus = () => {
-        input.parentElement.closest('.card-premium').style.transform = 'scale(1.01)';
-        input.parentElement.closest('.card-premium').style.transition = 'transform 0.3s ease';
-    };
-    input.onblur = () => {
-        input.parentElement.closest('.card-premium').style.transform = 'scale(1)';
-    };
-
-    input.onkeyup = (e) => {
-        if (e.key === 'Enter') document.querySelector('#room-name-submit').click();
-    };
-
-    document.querySelector('#room-name-submit').onclick = () => {
-        const roomName = input.value.trim();
-        if (roomName) {
-            // Add a brief loading state
-            document.querySelector('#room-name-submit').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Joining...';
-            document.querySelector('#room-name-submit').disabled = true;
-
-            setTimeout(() => {
-                window.location.pathname = '/chat/' + roomName + '/';
-            }, 400);
-        }
-    };
+    // Search Filtering
+    document.getElementById('contact-search').addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const activePane = document.querySelector('.tab-pane.active');
+        const items = activePane.querySelectorAll('.chat-item');
+        
+        items.forEach(item => {
+            const name = item.querySelector('h6').innerText.toLowerCase();
+            item.style.setProperty('display', name.includes(filter) ? 'flex' : 'none', 'important');
+        });
+    });
 </script>
 {% endblock content %}

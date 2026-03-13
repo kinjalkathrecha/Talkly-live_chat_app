@@ -1,41 +1,39 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+<div class="container py-5">
+    <div class="row justify-content-center">
         <div class="col-md-5">
-            <div class="card card-premium border-0 shadow-lg">
+            <div class="card border-0 shadow-lg rounded-4">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <div class="d-inline-block p-3 rounded-circle mb-3"
-                            style="background: rgba(168, 85, 247, 0.1);">
-                            <span style="font-size: 2rem;">✨</span>
+                        <div class="d-inline-flex p-3 rounded-circle mb-3 bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-person-plus-fill" style="font-size: 2rem;"></i>
                         </div>
                         <h2 class="fw-bold">Join Talkly</h2>
-                        <p class="text-muted">Create a free account to start real-time conversations.</p>
+                        <p class="text-muted small">Create a free account to start real-time conversations.</p>
                     </div>
 
                     <form method="post">
                         {% csrf_token %}
                         {% for field in form %}
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold text-uppercase">{{ field.label }}</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase" style="font-size: 0.65rem;">{{ field.label }}</label>
                             {{ field }}
                             {% if field.help_text %}
-                            <div class="text-muted small mt-1" style="font-size: 0.7rem;">
+                            <div class="text-muted small mt-1" style="font-size: 0.65rem;">
                                 {{ field.help_text|safe }}
                             </div>
                             {% endif %}
                             {% if field.errors %}
-                            <div class="text-danger small mt-1">
+                            <div class="text-danger small mt-1" style="font-size: 0.75rem;">
                                 {{ field.errors|first }}
                             </div>
                             {% endif %}
                         </div>
                         {% endfor %}
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-2"
-                            style="border-radius: 0.75rem;">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-3 rounded-3 fw-bold">
                             Create Account
                         </button>
                     </form>
@@ -52,29 +50,17 @@
 </div>
 
 <style>
-    /* Styling for Django form inputs to match the premium design */
-    input[type="text"],
-    input[type="password"],
-    input[type="email"] {
+    input[type="text"], input[type="password"], input[type="email"] {
         width: 100%;
         padding: 0.75rem 1rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #dee2e6;
         border-radius: 0.75rem;
         outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: all 0.2s;
     }
-
     input:focus {
         border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    ul.errorlist {
-        padding-left: 0;
-        list-style: none;
-        color: #ef4444;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
     }
 </style>
 {% endblock %}

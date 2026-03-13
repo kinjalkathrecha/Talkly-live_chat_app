@@ -1,24 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+<div class="container py-5">
+    <div class="row justify-content-center">
         <div class="col-md-5">
-            <div class="card card-premium border-0 shadow-lg">
+            <div class="card border-0 shadow-lg rounded-4">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <div class="d-inline-block p-3 rounded-circle mb-3" 
-                             style="background: rgba(99, 102, 241, 0.1);">
-                            <span style="font-size: 2rem;">🔐</span>
+                        <div class="d-inline-flex p-3 rounded-circle mb-3 bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-lock-fill" style="font-size: 2rem;"></i>
                         </div>
                         <h2 class="fw-bold">Welcome Back</h2>
-                        <p class="text-muted">Log in to continue your conversations.</p>
+                        <p class="text-muted small">Log in to continue your conversations.</p>
                     </div>
 
                     <form method="post">
                         {% csrf_token %}
-                        
-                        {# Handle non-field errors (like wrong password/username) #}
                         {% if form.non_field_errors %}
                         <div class="alert alert-danger py-2 small">
                             {{ form.non_field_errors|first }}
@@ -27,18 +24,17 @@
 
                         {% for field in form %}
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold text-uppercase">{{ field.label }}</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase" style="font-size: 0.65rem;">{{ field.label }}</label>
                             {{ field }}
                             {% if field.errors %}
-                            <div class="text-danger small mt-1" style="font-size: 0.8rem;">
+                            <div class="text-danger small mt-1" style="font-size: 0.75rem;">
                                 {{ field.errors|first }}
                             </div>
                             {% endif %}
                         </div>
                         {% endfor %}
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-2" 
-                                style="border-radius: 0.75rem; background-color: #6366f1; border: none;">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-3 rounded-3 fw-bold">
                             Sign In
                         </button>
                     </form>
@@ -55,27 +51,17 @@
 </div>
 
 <style>
-    /* Reuse your exact styling for consistency */
-    input[type="text"],
-    input[type="password"],
-    input[type="email"] {
+    input[type="text"], input[type="password"], input[type="email"] {
         width: 100%;
         padding: 0.75rem 1rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #dee2e6;
         border-radius: 0.75rem;
         outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: all 0.2s;
     }
-
     input:focus {
         border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    .btn-primary:hover {
-        background-color: #4f46e5 !important;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
 </style>
 {% endblock %}

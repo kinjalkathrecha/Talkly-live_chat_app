@@ -42,6 +42,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
+        last_seen = timezone.now()
         await self.update_user_status(False)
 
         await self.channel_layer.group_send(
@@ -49,7 +50,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "user_status",
                 "user": self.user.username,
-                "status": "offline"
+                "status": "offline",
+                "last_seen": "Just now" # Initial offline status
             }
         )
 
@@ -176,7 +178,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "user_status",
             "user": event["user"],
-            "status": event["status"]
+            "status": event["status"],
+            "last_seen": event.get("last_seen", "")
         }))
 
     async def verify_room_access(self):
