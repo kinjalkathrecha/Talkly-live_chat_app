@@ -19,32 +19,44 @@
         </form>
 
                     <div class="user-list mt-4">
-                        {% for user in users %}
+                        {% for item in users_data %}
                         <div class="d-flex align-items-center justify-content-between p-3 mb-3 bg-white border rounded-4 shadow-sm">
                             <div class="d-flex align-items-center">
                                 <div class="position-relative me-3">
                                     <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm"
                                         style="width: 50px; height: 50px;">
-                                        {{ user.username|first|upper }}
+                                        {{ item.user.username|first|upper }}
                                     </div>
-                                    {% if user.profile.is_online %}
+                                    {% if item.user.profile.is_online %}
                                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-white border-2 rounded-circle" style="width: 14px; height: 14px;">
                                     </span>
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                                    <h6 class="mb-0 fw-bold">{{ item.user.username }}</h6>
                                     <small class="text-muted small">
-                                        {% if user.profile.is_online %}
+                                        {% if item.user.profile.is_online %}
                                             <span class="text-success">Online</span>
                                         {% else %}
-                                            Last seen: {{ user.profile.last_seen|timesince }} ago
+                                            Last seen: {{ item.user.profile.last_seen|timesince }} ago
                                         {% endif %}
                                     </small>
                                 </div>
                             </div>
-                            <a href="{% url 'start_dm' user.username %}"
-                                class="btn btn-sm btn-primary rounded-pill px-4 fw-bold">Message</a>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if item.is_contact %}
+                                <span class="badge bg-light text-success border rounded-pill px-3 py-2">
+                                    <i class="bi bi-check2-circle me-1"></i> Added
+                                </span>
+                                {% else %}
+                                <a href="{% url 'add_contact' item.user.username %}"
+                                    class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold">
+                                    <i class="bi bi-person-plus-fill me-1"></i> Add
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'start_dm' item.user.username %}"
+                                    class="btn btn-sm btn-primary rounded-pill px-4 fw-bold">Message</a>
+                            </div>
                         </div>
                         {% empty %}
                         {% if query %}

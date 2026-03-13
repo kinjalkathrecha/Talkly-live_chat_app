@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <a href="{% url 'index' %}" class="btn btn-sm btn-light rounded-circle me-3">
+                            <i class="bi bi-arrow-left"></i>
+                        </a>
+                        <h4 class="fw-bold mb-0">New Contact</h4>
+                    </div>
+                    <p class="text-muted small px-5">Add a new contact to your phonebook by entering their details below.</p>
+                </div>
+                <div class="card-body p-4">
+                    {% if error %}
+                    <div class="alert alert-danger border-0 rounded-4 small mb-4">
+                        <i class="bi bi-exclamation-circle me-2"></i> {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">FIRST NAME</label>
+                            <div class="input-group bg-light rounded-pill px-3 py-1 border">
+                                <span class="input-group-text bg-transparent border-0 text-muted">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" name="first_name" class="form-control bg-transparent border-0 shadow-none" placeholder="First name" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">LAST NAME</label>
+                            <div class="input-group bg-light rounded-pill px-3 py-1 border">
+                                <span class="input-group-text bg-transparent border-0 text-muted">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" name="last_name" class="form-control bg-transparent border-0 shadow-none" placeholder="Last name (optional)">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">PHONE</label>
+                            <div class="d-flex gap-2">
+                                <div class="bg-light rounded-pill px-3 py-1 border d-flex align-items-center" style="width: 100px;">
+                                    <span class="text-muted small fw-bold">IN +91</span>
+                                    <i class="bi bi-chevron-down ms-2 text-muted small"></i>
+                                </div>
+                                <div class="input-group bg-light rounded-pill px-3 py-1 border flex-grow-1">
+                                    <input type="text" name="phone_number" class="form-control bg-transparent border-0 shadow-none" placeholder="Phone number" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-4 px-5">
+                            <input class="form-check-input" type="checkbox" id="syncContact" checked disabled>
+                            <label class="form-check-label small text-muted" for="syncContact">
+                                Sync contact to phone
+                                <br><small style="font-size: 0.7rem;">This contact will be added to your account's address book.</small>
+                            </label>
+                        </div>
+
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm">
+                                Save Contact
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

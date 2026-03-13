@@ -7,6 +7,7 @@ class Room(models.Model):
     name = models.CharField(max_length=255, unique=True)
     is_private = models.BooleanField(default=False)
     participants = models.ManyToManyField(User, related_name="rooms", blank=True)
+    receiver_phone = models.CharField(max_length=15, blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -18,13 +19,17 @@ class Room(models.Model):
 
     def get_other_user(self, current_user):
         if self.is_private:
-            return self.participants.exclude(id=current_user.id).first()
+            other_user = self.participants.exclude(id=current_user.id).first()
+            if other_user:
+                return other_user
+            return self.receiver_phone
         return None
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True, unique=True)
 
     def __str__(self):
         return f"{self.user.username} - {'Online' if self.is_online else 'Offline'}"
@@ -71,6 +76,31 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.user.username if self.user else 'Anonymous'} ({self.status}): {self.content[:20]}"
+
+class Contact(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="contacts")
+    first_name = models.CharField(max_length=100, default="")
+    last_name = models.CharField(max_length=100, blank=True, default="")
+    phone_number = models.CharField(max_length=15,null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'phone_number')
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.first_name} {self.last_name} ({self.phone_number})"
+
+
+@receiver(post_save, sender=UserProfile)
+def claim_pending_rooms(sender, instance, created, **kwargs):
+    if instance.phone_number:
+        # Find rooms where this phone number is the receiver
+        pending_rooms = Room.objects.filter(receiver_phone=instance.phone_number, is_private=True)
+        for room in pending_rooms:
+            room.participants.add(instance.user)
+            # Once claimed, we clear receiver_phone
+            room.receiver_phone = None
+            room.save()
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Room, Message,UserProfile
+from .models import Room, Message,UserProfile,Contact
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
@@ -12,3 +12,7 @@ class MessageAdmin(admin.ModelAdmin):
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user','is_online','last_seen')
+
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = ('user','first_name','phone_number')

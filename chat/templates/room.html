@@ -39,18 +39,28 @@
         <!-- Header -->
         <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
             <div>
-                <h5 class="mb-0 fw-bold">{{ room_name }}</h5>
+                <h5 class="mb-0 fw-bold">{{ display_name }}</h5>
                 <div id="participants-status" class="d-flex align-items-center gap-2 mt-1">
                     {% for participant in participants %}
                         {% if participant != request.user %}
                             <div class="small text-muted d-flex align-items-center" id="status-{{ participant.username }}">
                                 <span class="rounded-circle me-1 {% if participant.profile.is_online %}bg-success{% else %}bg-secondary{% endif %}" style="width: 8px; height: 8px;" id="status-dot-{{ participant.username }}"></span>
-                                <span class="fw-bold me-1 text-dark">{{ participant.username }}</span>
-                                <span class="status-text" id="status-text-{{ participant.username }}">
-                                    {% if participant.profile.is_online %}
-                                        <span class="text-success small">Online</span>
+                                <span class="fw-bold me-1 text-dark">
+                                    {% if room.is_private and participant != request.user %}
+                                        {{ display_name }}
                                     {% else %}
-                                        <span class="small">Last seen: {{ participant.profile.last_seen|timesince }} ago</span>
+                                        {{ participant.username }}
+                                    {% endif %}
+                                </span>
+                                <span class="status-text" id="status-text-{{ participant.username }}">
+                                    {% if participant.profile %}
+                                        {% if participant.profile.is_online %}
+                                            <span class="text-success small">Online</span>
+                                        {% else %}
+                                            <span class="small">Last seen: {{ participant.profile.last_seen|timesince }} ago</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="small text-muted">Offline</span>
                                     {% endif %}
                                 </span>
                             </div>
@@ -80,7 +90,11 @@
                     
                     {% if message.user != request.user %}
                     <div class="small fw-bold mb-1 opacity-75" style="font-size: 0.7rem;">
-                        {{ message.user.username }}
+                        {% if room.is_private %}
+                            {{ display_name }}
+                        {% else %}
+                            {{ message.user.username }}
+                        {% endif %}
                     </div>
                     {% endif %}
 
@@ -132,6 +146,7 @@
 </div>
 
 {{ room_name|json_script:"room-name" }}
+{{ other_user_display_name|json_script:"other-user-display-name" }}
 
 <script>
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
@@ -184,7 +199,8 @@
                      data-status="sent">`;
             
             if (!isMe) {
-                messageHtml += `<div class="small fw-bold mb-1 opacity-75" style="font-size: 0.7rem;">${data.user}</div>`;
+                const otherDisplayName = JSON.parse(document.getElementById('other-user-display-name').textContent);
+                messageHtml += `<div class="small fw-bold mb-1 opacity-75" style="font-size: 0.7rem;">${otherDisplayName || data.user}</div>`;
             }
             messageHtml += `<div class="content small">${data.message}</div>`;
             

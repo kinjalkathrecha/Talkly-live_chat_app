@@ -8,13 +8,16 @@
             <div class="p-4 border-bottom">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h4 class="fw-bold mb-0">Talkly</h4>
+                    <a href="{% url 'add_contact' %}" class="btn btn-sm btn-light rounded-circle text-primary shadow-sm">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </a>
                 </div>
                 <!-- Search -->
                 <div class="input-group input-group-sm rounded-pill bg-light border-0 px-2 py-1">
                     <span class="input-group-text bg-transparent border-0 text-muted">
                         <i class="bi bi-search"></i>
                     </span>
-                    <input type="text" id="contact-search" class="form-control bg-transparent border-0 shadow-none" placeholder="Search chats or contacts...">
+                    <input type="text" id="contact-search" class="form-control bg-transparent border-0 shadow-none" placeholder="Search your contacts...">
                 </div>
             </div>
 
@@ -36,15 +39,21 @@
                     <a href="{% url 'room' item.room.name %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
                         <div class="position-relative me-3">
                             <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
-                                {{ item.other_user.username|slice:":1"|upper }}
+                                {% if item.display_name %}
+                                {{ item.display_name|slice:":1"|upper }}
+                                {% else %}
+                                #
+                                {% endif %}
                             </div>
-                            {% if item.other_user.profile.is_online %}
+                            {% if item.other_user.profile and item.other_user.profile.is_online %}
                             <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" style="width: 12px; height: 12px;"></span>
                             {% endif %}
                         </div>
                         <div class="flex-grow-1 min-width-0">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 fw-bold text-dark text-truncate">{{ item.other_user.username }}</h6>
+                                <h6 class="mb-0 fw-bold text-dark text-truncate">
+                                    {{ item.display_name }}
+                                </h6>
                                 <small class="text-muted">{{ item.last_message.timestamp|date:"H:i" }}</small>
                             </div>
                             <p class="mb-0 text-muted small text-truncate">
@@ -60,21 +69,49 @@
 
                 <!-- Contacts -->
                 <div class="tab-pane fade" id="contacts-list">
-                    {% for contact in contacts %}
-                    <a href="{% url 'start_dm' contact.username %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
+                    {% for item in contacts_data %}
+                    {% if item.linked_user %}
+                    <a href="{% url 'start_dm' item.linked_user.username %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
+                    {% elif item.contact.phone_number %}
+                    <a href="{% url 'start_dm_by_phone' item.contact.phone_number %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
+                    {% else %}
+                    <div class="d-flex align-items-center p-3 border-bottom opacity-75 chat-item">
+                    {% endif %}
                         <div class="position-relative me-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-secondary fw-bold bg-light border" style="width: 48px; height: 48px;">
-                                {{ contact.username|slice:":1"|upper }}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: #e2e8f0; color: #64748b !important;">
+                                {{ item.contact.first_name|slice:":1"|upper }}
                             </div>
-                            {% if contact.profile.is_online %}
+                            {% if item.linked_user.profile and item.linked_user.profile.is_online %}
                             <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" style="width: 12px; height: 12px;"></span>
                             {% endif %}
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0 fw-bold text-dark">{{ contact.username }}</h6>
-                            <small class="text-muted">Start chatting</small>
+                            <h6 class="mb-0 fw-bold text-dark">{{ item.contact.first_name }} {{ item.contact.last_name }}</h6>
+                            <small class="text-muted">
+                                {% if item.linked_user %}
+                                <span class="text-success small"><i class="bi bi-chat-fill me-1"></i>Available to chat</span>
+                                {% else %}
+                                {{ item.contact.phone_number }}
+                                {% endif %}
+                            </small>
                         </div>
+                        {% if not item.linked_user and item.contact.phone_number %}
+                        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.65rem;">INVITE</span>
+                        {% endif %}
+                    {% if item.linked_user or item.contact.phone_number %}
                     </a>
+                    {% else %}
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <div class="text-center py-5 px-3">
+                        <div class="avatar bg-light text-muted rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-plus" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h6 class="fw-bold">Your phonebook is empty</h6>
+                        <p class="text-muted small mb-3">Save people with their name and phone number to see who is on Talkly.</p>
+                        <a href="{% url 'add_contact' %}" class="btn btn-sm btn-primary rounded-pill px-4">Add Contact</a>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -84,10 +121,10 @@
         <div class="col-md-8 col-lg-8 d-none d-md-flex flex-column align-items-center justify-content-center bg-light p-5 text-center">
             <div class="p-4 bg-white rounded-4 shadow-sm mb-4" style="font-size: 3rem;">✉️</div>
             <h3 class="fw-bold">Your Messages</h3>
-            <p class="text-muted max-width-400">Select a chat to start messaging or search for your contacts to start something new.</p>
-            <button class="btn btn-primary rounded-pill px-4 py-2 mt-3" onclick="document.querySelector('[data-bs-target=\'#contacts-list\']').click()">
-                New Conversation
-            </button>
+            <p class="text-muted max-width-400">Add people to your contacts using their username and phone number to start chatting.</p>
+            <a href="{% url 'add_contact' %}" class="btn btn-primary rounded-pill px-4 py-2 mt-3 shadow-sm">
+                <i class="bi bi-person-plus-fill me-2"></i>New Contact
+            </a>
         </div>
     </div>
 </div>
@@ -96,6 +133,18 @@
     .hover-bg-light:hover { background-color: #f8fafc; }
     .max-width-400 { max-width: 400px; }
     .min-width-0 { min-width: 0; }
+    .tab-content.flex-grow-1 {
+        overflow-y: auto;
+        height: 0; 
+        min-height: 0;
+    }
+    .tab-content::-webkit-scrollbar {
+        width: 5px;
+    }
+    .tab-content::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
 </style>
 
 <script>
@@ -106,7 +155,7 @@
             event.target.classList.remove('text-muted');
         });
     });
-
+    
     // Search Filtering
     document.getElementById('contact-search').addEventListener('keyup', function() {
         const filter = this.value.toLowerCase();
