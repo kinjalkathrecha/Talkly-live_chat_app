@@ -16,7 +16,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{self.room_name}"
 
-        # Fetch room to check privacy
         await self.verify_room_access()
         
         await self.channel_layer.group_add(
@@ -61,25 +60,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        msg_type = data.get("type")
         message = data.get("message")
         user = self.scope["user"]
 
-        if message:
-            saved_msg = await self.save_message(self.room_name, message, user)
-
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "chat_message",
-                    "message": message,
-                    "user": user.username if user.is_authenticated else "Anonymous",
-                    "id": saved_msg.id,
-                    "status_icon_html": await self.get_message_icon(saved_msg.id),
-                    "sender_channel_name": self.channel_name
-                }
-            )
-        
-        elif data.get("type") == "message_delivered":
+        if msg_type == "message_delivered":
             message_id = data.get("message_id")
             icon_html = await self.update_message_status(message_id, "delivered")
             if icon_html:
@@ -94,7 +79,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-        elif data.get("type") == "message_seen":
+        elif msg_type == "message_seen":
             message_id = data.get("message_id")
             icon_html = await self.update_message_status(message_id, "seen")
             if icon_html:
@@ -109,6 +94,49 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
+        elif msg_type == "edit_message":
+            message_id = data.get("message_id")
+            new_content = data.get("message")
+            success = await self.edit_message_db(message_id, new_content)
+            if success:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "message_edited",
+                        "message_id": message_id,
+                        "message": new_content,
+                        "user": user.username
+                    }
+                )
+
+        elif msg_type == "delete_message":
+            message_id = data.get("message_id")
+            success = await self.delete_message_db(message_id)
+            if success:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "message_deleted",
+                        "message_id": message_id,
+                        "user": user.username
+                    }
+                )
+
+        elif message:
+            saved_msg = await self.save_message(self.room_name, message, user)
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_message",
+                    "message": message,
+                    "user": user.username if user.is_authenticated else "Anonymous",
+                    "id": saved_msg.id,
+                    "status_icon_html": await self.get_message_icon(saved_msg.id),
+                    "sender_channel_name": self.channel_name
+                }
+            )
+        
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat_message",
@@ -118,6 +146,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "status": "sent",
             "status_icon_html": event["status_icon_html"],
             "sender_channel_name": event["sender_channel_name"]
+        }))
+
+    async def message_edited(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "message_edited",
+            "message_id": event["message_id"],
+            "message": event["message"],
+            "user": event["user"]
+        }))
+
+    async def message_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "message_deleted",
+            "message_id": event["message_id"],
+            "user": event["user"]
         }))
 
     async def message_status_update(self, event):
@@ -190,6 +233,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return None
         except Message.DoesNotExist:
             return None
+
+    @database_sync_to_async
+    def edit_message_db(self, message_id, new_content):
+        try:
+            message = Message.objects.get(id=message_id, user=self.user)
+            if not message.is_deleted:
+                message.content = new_content
+                message.is_edited = True
+                message.save()
+                return True
+            return False
+        except Message.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def delete_message_db(self, message_id):
+        try:
+            message = Message.objects.get(id=message_id, user=self.user)
+            message.is_deleted = True
+            # We don't clear content here so the database still has it, 
+            # but we mark it as deleted and frontend will handle display.
+            message.save()
+            return True
+        except Message.DoesNotExist:
+            return False
 
     @database_sync_to_async
     def update_user_status(self, is_online):

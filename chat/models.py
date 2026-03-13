@@ -42,6 +42,8 @@ class Message(models.Model):
         ('seen', 'Seen'),
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
+    is_edited = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     delivered_at = models.DateTimeField(null=True, blank=True)
     seen_at = models.DateTimeField(null=True, blank=True)
 

@@ -143,6 +143,44 @@
         display: inline-flex;
         align-items: center;
     }
+
+    /* Edit/Delete styles */
+    .message-actions {
+        opacity: 0 ;
+        transition: opacity 1s;
+        margin-left: 0.5rem;
+        display: inline-flex;
+        gap: 0.25rem;
+    }
+
+    .message:hover .message-actions {
+        opacity: 1;
+    }
+
+    .action-btn {
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: white;
+        opacity: 3;
+        transition: opacity 0.2s;
+    }
+
+    .action-btn:hover {
+        opacity: 1;
+    }
+
+    .message.deleted .content {
+        font-style: italic;
+        opacity: 0.6;
+    }
+
+    .edited-label {
+        font-size: 0.7rem;
+        opacity: 5;
+        margin-left: 0.25rem;
+    }
 </style>
 
 <div class="container">
@@ -176,7 +214,7 @@
             </div>
 
             {% for message in messages %}
-            <div class="message {% if message.user == request.user %}sent{% else %}received{% endif %}" 
+            <div class="message {% if message.user == request.user %}sent{% else %}received{% endif %} {% if message.is_deleted %}deleted{% endif %}" 
                  data-id="{{ message.id }}" 
                  data-status="{{ message.status }}">
                 {% if message.user != request.user %}
@@ -184,9 +222,28 @@
                     {{ message.user.username|default:"Anonymous" }}
                 </div>
                 {% endif %}
-                <div class="content">{{ message.content }}</div>
+                <div class="content">
+                    {% if message.is_deleted %}
+                        This message was deleted
+                    {% else %}
+                        {{ message.content }}
+                    {% endif %}
+                </div>
                 <div class="status-indicator">
+                    {% if not message.is_deleted and message.is_edited %}
+                        <span class="edited-label">(edited)</span>
+                    {% endif %}
                     {% if message.user == request.user %}
+                        {% if not message.is_deleted %}
+                            <div class="message-actions">
+                                <button class="action-btn edit-btn" onclick="startEdit({{ message.id }})">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteMessage({{ message.id }})">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                                </button>
+                            </div>
+                        {% endif %}
                         <span class="status-icon" id="status-icon-{{ message.id }}">
                             {{ message.status_icon_html|safe }}
                         </span>
@@ -265,7 +322,21 @@
                 messageHtml += `<div class="small fw-bold mb-1" style="font-size: 0.75rem; opacity: 0.8;">${data.user}</div>`;
             }
             messageHtml += `<div class="content">${data.message}</div>`;
-            messageHtml += `<div class="status-indicator"><span class="status-icon" id="status-icon-${data.id}">${isMe ? data.status_icon_html : ''}</span></div>`;
+            
+            let actionsHtml = '';
+            if (isMe) {
+                actionsHtml = `
+                    <div class="message-actions">
+                        <button class="action-btn edit-btn" onclick="startEdit(${data.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteMessage(${data.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                        </button>
+                    </div>`;
+            }
+            
+            messageHtml += `<div class="status-indicator">${actionsHtml}<span class="status-icon" id="status-icon-${data.id}">${isMe ? data.status_icon_html : ''}</span></div>`;
             messageDiv.innerHTML = messageHtml;
 
             chatLog.appendChild(messageDiv);
@@ -307,6 +378,43 @@
                 statusBox.innerHTML = `<span class="${dot.className}"></span> ${data.user} (${data.status === 'online' ? 'Online' : 'Offline'})`;
             }
         }
+        
+
+        if (data.type === 'message_edited') {
+            const messageEl = document.querySelector(`.message[data-id="${data.message_id}"]`);
+            if (messageEl) {
+                const contentEl = messageEl.querySelector('.content');
+                contentEl.innerText = data.message;
+                
+                // Add edited label if not already present
+                if (!messageEl.querySelector('.edited-label')) {
+                    const indicator = messageEl.querySelector('.status-indicator');
+                    const label = document.createElement('span');
+                    label.className = 'edited-label';
+                    label.innerText = '(edited)';
+                    indicator.prepend(label);
+                }
+            }
+        }
+
+        if (data.type === 'message_deleted') {
+            const messageEl = document.querySelector(`.message[data-id="${data.message_id}"]`);
+            if (messageEl) {
+                messageEl.classList.add('deleted');
+                const contentEl = messageEl.querySelector('.content');
+                contentEl.innerText = 'This message was deleted';
+                
+                // Remove actions and status icons
+                const actions = messageEl.querySelector('.message-actions');
+                if (actions) actions.remove();
+                
+                const statusIcon = messageEl.querySelector('.status-icon');
+                if (statusIcon) statusIcon.innerHTML = '';
+
+                const editedLabel = messageEl.querySelector('.edited-label');
+                if (editedLabel) editedLabel.remove();
+            }
+        }
     };
 
     socket.onclose = function (e) {
@@ -321,18 +429,57 @@
         }
     };
 
+    let editingMessageId = null;
+
     document.getElementById("chat-message-submit").onclick = function () {
         const input = document.getElementById("chat-message-input");
         const message = input.value.trim();
 
         if (message === "" || !myChannelName) return;
 
-        socket.send(JSON.stringify({
-            "message": message
-        }));
+        if (editingMessageId) {
+            socket.send(JSON.stringify({
+                "type": "edit_message",
+                "message_id": editingMessageId,
+                "message": message
+            }));
+            editingMessageId = null;
+            document.getElementById("chat-message-submit").innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z" />
+                </svg>`;
+        } else {
+            socket.send(JSON.stringify({
+                "message": message
+            }));
+        }
 
         input.value = "";
     };
+
+    function startEdit(id) {
+        const messageEl = document.querySelector(`.message[data-id="${id}"]`);
+        const content = messageEl.querySelector('.content').innerText;
+        const input = document.getElementById("chat-message-input");
+        input.value = content;
+        input.focus();
+        editingMessageId = id;
+        
+        // Change send button to save icon
+        document.getElementById("chat-message-submit").innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.047 0L3.224 8.35c-.28-.294-.276-.761.01-1.05a.733.733 0 0 1 1.047 0l2.578 2.574 5.877-5.908Z"/>
+            </svg>`;
+    }
+
+    function deleteMessage(id) {
+        if (confirm("Are you sure you want to delete this message?")) {
+            socket.send(JSON.stringify({
+                "type": "delete_message",
+                "message_id": id
+            }));
+        }
+    }
 
     // Send seen ACK for existing messages and when window is focused
     function markAllAsSeen() {
