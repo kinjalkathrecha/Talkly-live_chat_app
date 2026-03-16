@@ -1,9 +1,15 @@
 from django.urls import path
-from .views import index, room, start_dm, add_contact,start_dm_by_phone
+from .views import (
+    RoomDetailView, 
+    StartDMView, 
+    AddContactView, 
+    StartDMByPhoneView,
+)
 
 urlpatterns = [
-    path("add-contact/", add_contact, name="add_contact"),
-    path("dm/<str:username>/", start_dm, name="start_dm"),
-    path("dm/phone/<str:phone>/", start_dm_by_phone, name="start_dm_by_phone"),
-    path("<slug:room_name>/", room, name="room"),
+    path("add-contact/", AddContactView.as_view(), name="add_contact"),
+    path("dm/<str:username>/", StartDMView.as_view(), name="start_dm"),
+    path("dm/phone/<str:phone>/", StartDMByPhoneView.as_view(), name="start_dm_by_phone"),
+    
+    path("<slug:room_name>/", RoomDetailView.as_view(), name="room"),
 ]
