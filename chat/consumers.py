@@ -138,6 +138,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "sender_channel_name": self.channel_name
                 }
             )
+
+            # Send a global notification to other participants in the room
+            participants = await self.get_room_participants(self.room_name)
+            for participant in participants:
+                if participant.id != user.id:
+                    notify_group = f"notify_{participant.id}"
+                    await self.channel_layer.group_send(
+                        notify_group,
+                        {
+                            "type": "global_notification",
+                            "message": message,
+                            "sender": user.username if user.is_authenticated else "Anonymous",
+                            "room_name": self.room_name
+                        }
+                    )
         
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
@@ -266,3 +281,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
             is_online=is_online,
             last_seen=timezone.now()
         )
+
+    @database_sync_to_async
+    def get_room_participants(self, room_name):
+        try:
+            room = Room.objects.get(name=room_name)
+            return list(room.participants.all())
+        except Room.DoesNotExist:
+            return []
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+        
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+
+        self.group_name = f"notify_{self.user.id}"
+
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'group_name'):
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )
+
+    async def global_notification(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "notification",
+            "message": event["message"],
+            "sender": event["sender"],
+            "room_name": event["room_name"]
+        }))

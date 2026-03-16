@@ -15,6 +15,9 @@ def index(request):
     rooms_with_last_msg = []
     for room in user_rooms:
         last_msg = room.last_message
+        if not last_msg:
+            continue
+            
         other = room.get_other_user(request.user)
         display_name = None
         
@@ -128,6 +131,17 @@ def add_contact(request):
 @login_required
 def start_dm(request, username):
     other_user = User.objects.get(username=username)
+    
+    if request.user != other_user:
+        existing_rooms = Room.objects.filter(
+            is_private=True, 
+            participants=request.user
+        ).filter(
+            participants=other_user
+        )
+        if existing_rooms.exists():
+            return redirect('room', room_name=existing_rooms.first().name)
+            
     user_ids = sorted([request.user.id, other_user.id])
     room_name = f"dm_{user_ids[0]}_{user_ids[1]}"
     
@@ -144,6 +158,14 @@ def start_dm_by_phone(request, phone):
     profile = UserProfile.objects.filter(phone_number=phone).first()
     if profile:
         return redirect('start_dm', username=profile.user.username)
+        
+    existing_room = Room.objects.filter(
+        is_private=True, 
+        receiver_phone=phone,
+        participants=request.user
+    ).first()
+    if existing_room:
+        return redirect('room', room_name=existing_room.name)
     
     room_name = f"dm_phone_{request.user.id}_{phone}"
     

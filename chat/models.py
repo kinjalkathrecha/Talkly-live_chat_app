@@ -29,6 +29,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True, unique=True)
 
     def __str__(self):
         return f"{self.user.username} - {'Online' if self.is_online else 'Offline'}"
@@ -105,8 +106,3 @@ def claim_pending_rooms(sender, instance, created, **kwargs):
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.get_or_create(user=instance)
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
