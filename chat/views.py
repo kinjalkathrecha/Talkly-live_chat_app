@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 from .models import Room, UserProfile, Contact
 from .forms import UserSignUpForm, AddContactForm
 
-# Create your views here.
 @login_required
 def index(request):
     user_rooms = Room.objects.filter(
@@ -26,7 +25,7 @@ def index(request):
                 display_name = f"{contact.first_name} {contact.last_name}".strip()
             else:
                 display_name = other.username
-        elif other: # It's a phone number string
+        elif other: 
             contact = Contact.objects.filter(user=request.user, phone_number=other).first()
             if contact:
                 display_name = f"{contact.first_name} {contact.last_name}".strip()
@@ -42,7 +41,6 @@ def index(request):
     
     rooms_with_last_msg.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else x['room'].created_at, reverse=True)
 
-    # Filter contacts to only those the user has specifically added
     my_contacts = Contact.objects.filter(user=request.user)
     
     contacts_with_users = []
@@ -136,20 +134,17 @@ def start_dm(request, username):
     room, created = Room.objects.get_or_create(name=room_name, is_private=True)
     if created:
         room.participants.add(request.user, other_user)
-        room.receiver_phone = None # Ensure it's not a phone room
+        room.receiver_phone = None 
         room.save()
     
     return redirect('room', room_name=room_name)
 
 @login_required
 def start_dm_by_phone(request, phone):
-    # Check if a user with this phone number exists
     profile = UserProfile.objects.filter(phone_number=phone).first()
     if profile:
         return redirect('start_dm', username=profile.user.username)
     
-    # Otherwise, create a room based on the phone number
-    # Room name will be dm_phone_<user_id>_<phone>
     room_name = f"dm_phone_{request.user.id}_{phone}"
     
     room, created = Room.objects.get_or_create(

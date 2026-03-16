@@ -255,8 +255,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             message = Message.objects.get(id=message_id, user=self.user)
             message.is_deleted = True
-            # We don't clear content here so the database still has it, 
-            # but we mark it as deleted and frontend will handle display.
             message.save()
             return True
         except Message.DoesNotExist:
