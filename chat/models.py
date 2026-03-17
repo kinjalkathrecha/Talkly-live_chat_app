@@ -5,6 +5,8 @@ from django.dispatch import receiver
 
 class Room(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    group_name = models.CharField(max_length=255, blank=True, null=True)
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="admin_rooms")
     is_private = models.BooleanField(default=False)
     participants = models.ManyToManyField(User, related_name="rooms", blank=True)
     receiver_phone = models.CharField(max_length=15, blank=True, null=True, db_index=True)

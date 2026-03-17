@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom p-4">
+                    <div class="d-flex align-items-center mb-0">
+                        <a href="{% url 'index' %}" class="btn btn-sm btn-light rounded-circle me-3"><i class="bi bi-arrow-left"></i></a>
+                        <h4 class="fw-bold mb-0">Create New Group</h4>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-muted">GROUP NAME</label>
+                            <input type="text" name="group_name" class="form-control form-control-lg bg-light border-0" placeholder="E.g. Family, Weekend Plans..." required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">SELECT PARTICIPANTS</label>
+                            <div class="list-group list-group-flush border rounded-3 overflow-hidden" style="max-height: 300px; overflow-y: auto;">
+                                {% for item in contacts %}
+                                <label class="list-group-item d-flex align-items-center p-3 hover-bg-light cursor-pointer">
+                                    <input class="form-check-input me-3" type="checkbox" name="participants" value="{{ item.user.id }}">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            {{ item.contact.first_name|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{ item.contact.first_name }} {{ item.contact.last_name }}</h6>
+                                            <small class="text-muted">{{ item.contact.phone_number }}</small>
+                                        </div>
+                                    </div>
+                                </label>
+                                {% empty %}
+                                <div class="p-4 text-center text-muted">
+                                    <small>No Talkly contacts available to add.<br>Add contacts who are on Talkly first.</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                                Create Group <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-bg-light:hover { background-color: #f8fafc; }
+    .cursor-pointer { cursor: pointer; }
+</style>
+{% endblock %}

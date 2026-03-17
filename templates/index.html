@@ -8,9 +8,14 @@
             <div class="p-4 border-bottom">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h4 class="fw-bold mb-0">Talkly</h4>
-                    <a href="{% url 'add_contact' %}" class="btn btn-sm btn-light rounded-circle text-primary shadow-sm">
-                        <i class="bi bi-person-plus-fill"></i>
-                    </a>
+                    <div>
+                        <a href="{% url 'create_group' %}" class="btn btn-sm btn-light rounded-circle text-success shadow-sm me-1" title="Create Group">
+                            <i class="bi bi-people-fill"></i>
+                        </a>
+                        <a href="{% url 'add_contact' %}" class="btn btn-sm btn-light rounded-circle text-primary shadow-sm" title="Add Contact">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </a>
+                    </div>
                 </div>
                 <!-- Search -->
                 <div class="input-group input-group-sm rounded-pill bg-light border-0 px-2 py-1">
@@ -38,14 +43,16 @@
                     {% for item in recent_chats %}
                     <a href="{% url 'room' item.room.name %}" class="d-flex align-items-center p-3 text-decoration-none border-bottom hover-bg-light chat-item">
                         <div class="position-relative me-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
-                                {% if item.display_name %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: {% if not item.room.is_private %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #6366f1 0%, #a855f7 100%){% endif %};">
+                                {% if not item.room.is_private %}
+                                <i class="bi bi-people-fill"></i>
+                                {% elif item.display_name %}
                                 {{ item.display_name|slice:":1"|upper }}
                                 {% else %}
                                 #
                                 {% endif %}
                             </div>
-                            {% if item.other_user.profile and item.other_user.profile.is_online %}
+                            {% if item.room.is_private and item.other_user.profile and item.other_user.profile.is_online %}
                             <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" style="width: 12px; height: 12px;"></span>
                             {% endif %}
                         </div>
@@ -121,10 +128,15 @@
         <div class="col-md-8 col-lg-8 d-none d-md-flex flex-column align-items-center justify-content-center bg-light p-5 text-center">
             <div class="p-4 bg-white rounded-4 shadow-sm mb-4" style="font-size: 3rem;">✉️</div>
             <h3 class="fw-bold">Your Messages</h3>
-            <p class="text-muted max-width-400">Add people to your contacts using their username and phone number to start chatting.</p>
-            <a href="{% url 'add_contact' %}" class="btn btn-primary rounded-pill px-4 py-2 mt-3 shadow-sm">
-                <i class="bi bi-person-plus-fill me-2"></i>New Contact
-            </a>
+            <p class="text-muted max-width-400">Add people to your contacts using their username and phone number to start chatting, or create a group.</p>
+            <div class="d-flex mt-3">
+                <a href="{% url 'add_contact' %}" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                    <i class="bi bi-person-plus-fill me-2"></i>New Contact
+                </a>
+                <a href="{% url 'create_group' %}" class="btn btn-outline-success rounded-pill px-4 py-2 shadow-sm ms-2">
+                    <i class="bi bi-people-fill me-2"></i>Create Group
+                </a>
+            </div>
         </div>
     </div>
 </div>

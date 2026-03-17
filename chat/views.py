@@ -15,8 +15,7 @@ class IndexView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         # Logic moved from the original index function
         user_rooms = Room.objects.filter(
-            is_private=True, 
-            participants=self.request.user,
+            participants=self.request.user
         ).distinct()
         
         rooms_with_last_msg = []
@@ -25,8 +24,12 @@ class IndexView(LoginRequiredMixin, ListView):
             if not last_msg:
                 continue
                 
-            other = room.get_other_user(self.request.user)
-            display_name = self._get_display_name(other)
+            if room.is_private:
+                other = room.get_other_user(self.request.user)
+                display_name = self._get_display_name(other)
+            else:
+                other = None
+                display_name = room.group_name or room.name
 
             rooms_with_last_msg.append({
                 'room': room,
@@ -77,7 +80,7 @@ class RoomDetailView(LoginRequiredMixin, View):
         room, created = Room.objects.get_or_create(name=room_name)
         
         # Security check
-        if room.is_private and request.user not in room.participants.all():
+        if request.user not in room.participants.all():
             return redirect('index')
 
         messages = room.messages.all().order_by('timestamp')
@@ -89,13 +92,30 @@ class RoomDetailView(LoginRequiredMixin, View):
             index_helper = IndexView()
             index_helper.request = request
             display_name = index_helper._get_display_name(room.get_other_user(request.user))
+        else:
+            display_name = room.group_name or room.name
+            
+        available_contacts = []
+        if not room.is_private and request.user == room.admin:
+            my_contacts = Contact.objects.filter(user=request.user)
+            existing_participants_ids = room.participants.values_list('id', flat=True)
+            for contact in my_contacts:
+                profile = UserProfile.objects.filter(phone_number=contact.phone_number).first()
+                if profile and profile.user and profile.user.id not in existing_participants_ids:
+                    available_contacts.append({
+                        'contact': contact,
+                        'user': profile.user
+                    })
 
         return render(request, "room.html", {
             "room_name": room_name,
             "display_name": display_name,
             "other_user_display_name": display_name if room.is_private else None,
             "messages": messages,
-            "participants": room.participants.all() if room.is_private else [],
+            "participants": room.participants.all(),
+            "is_group": not room.is_private,
+            "is_admin": request.user == room.admin,
+            "available_contacts": available_contacts
         })
 
 
@@ -170,3 +190,51 @@ class SignUpView(View):
             login(request, user)
             return redirect('index')
         return render(request, 'registration/signup.html', {'form': form})
+        
+from django.utils.crypto import get_random_string
+
+class CreateGroupView(LoginRequiredMixin, View):
+    def get(self, request):
+        my_contacts = Contact.objects.filter(user=request.user)
+        contacts_with_users = []
+        for contact in my_contacts:
+            profile = UserProfile.objects.filter(phone_number=contact.phone_number).first()
+            if profile and profile.user:
+                contacts_with_users.append({
+                    'contact': contact,
+                    'user': profile.user
+                })
+        return render(request, "create_group.html", {"contacts": contacts_with_users})
+        
+    def post(self, request):
+        group_name = request.POST.get('group_name')
+        participant_ids = request.POST.getlist('participants')
+        
+        if not group_name:
+            return redirect('create_group')
+            
+        room_name = f"group_{get_random_string(10)}"
+        
+        room = Room.objects.create(
+            name=room_name,
+            group_name=group_name,
+            admin=request.user,
+            is_private=False
+        )
+        room.participants.add(request.user)
+        for p_id in participant_ids:
+            room.participants.add(p_id)
+            
+        return redirect('room', room_name=room.name)
+
+class AddGroupMemberView(LoginRequiredMixin, View):
+    def post(self, request, room_name):
+        room = get_object_or_404(Room, name=room_name)
+        if request.user != room.admin:
+            return redirect('room', room_name=room_name)
+            
+        participant_ids = request.POST.getlist('participants')
+        for p_id in participant_ids:
+            room.participants.add(p_id)
+            
+        return redirect('room', room_name=room_name)

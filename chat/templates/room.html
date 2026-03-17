@@ -71,7 +71,14 @@
                     </span>
                 </div>
             </div>
-            <a href="{% url 'index' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Leave</a>
+            <div class="d-flex align-items-center gap-2">
+                {% if is_admin %}
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                    <i class="bi bi-person-plus me-1"></i> Add
+                </button>
+                {% endif %}
+                <a href="{% url 'index' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Leave</a>
+            </div>
         </div>
 
         <!-- Chat Log -->
@@ -142,8 +149,48 @@
         </div>
     </div>
 </div>
+
+<!-- Add Member Modal -->
+{% if is_admin %}
+<div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="addMemberModalLabel">Add to Group</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pb-4">
+        <form method="POST" action="{% url 'add_group_member' room_name %}">
+            {% csrf_token %}
+            <div class="list-group list-group-flush border rounded-3 overflow-hidden mb-3" style="max-height: 250px; overflow-y: auto;">
+                {% for item in available_contacts %}
+                <label class="list-group-item d-flex align-items-center p-3 hover-bg-light cursor-pointer">
+                    <input class="form-check-input me-3" type="checkbox" name="participants" value="{{ item.user.id }}">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                            {{ item.contact.first_name|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="font-size: 0.9rem;">{{ item.contact.first_name }} {{ item.contact.last_name }}</h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ item.contact.phone_number }}</small>
+                        </div>
+                    </div>
+                </label>
+                {% empty %}
+                <div class="p-4 text-center text-muted">
+                    <small>No more contacts available to add.</small>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="d-grid mt-3">
+                <button type="submit" class="btn btn-primary rounded-pill" {% if not available_contacts %}disabled{% endif %}>Add Selected Members</button>
+            </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
+{% endif %}
 
 {{ room_name|json_script:"room-name" }}
 {{ other_user_display_name|json_script:"other-user-display-name" }}
