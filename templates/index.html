@@ -63,10 +63,15 @@
                                 </h6>
                                 <small class="text-muted">{{ item.last_message.timestamp|date:"H:i" }}</small>
                             </div>
-                            <p class="mb-0 text-muted small text-truncate">
-                                {% if item.last_message.user == request.user %}You: {% endif %}
-                                {{ item.last_message.content }}
-                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <p class="mb-0 text-muted small text-truncate pe-2">
+                                    {% if item.last_message.user == request.user %}You: {% endif %}
+                                    {{ item.last_message.content }}
+                                </p>
+                                <span id="unread-count-{{ item.room.name }}" class="badge bg-danger rounded-pill" style="font-size: 0.7rem; {% if not item.unread_count or item.unread_count == 0 %}display: none;{% endif %}">
+                                    {{ item.unread_count }}
+                                </span>
+                            </div>
                         </div>
                     </a>
                     {% empty %}

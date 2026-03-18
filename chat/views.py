@@ -4,7 +4,7 @@ from django.views.generic import ListView, DetailView, CreateView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from .models import Room, UserProfile, Contact
+from .models import Room, UserProfile, Contact, Notification
 from .forms import UserSignUpForm, AddContactForm
 from django.urls import reverse_lazy
 
@@ -13,7 +13,6 @@ class IndexView(LoginRequiredMixin, ListView):
     context_object_name = "recent_chats"
 
     def get_queryset(self):
-        # Logic moved from the original index function
         user_rooms = Room.objects.filter(
             participants=self.request.user
         ).distinct()
@@ -31,11 +30,18 @@ class IndexView(LoginRequiredMixin, ListView):
                 other = None
                 display_name = room.group_name or room.name
 
+            unread_count = Notification.objects.filter(
+                user=self.request.user,
+                message__room=room,
+                is_read=False
+            ).count()
+
             rooms_with_last_msg.append({
                 'room': room,
                 'last_message': last_msg,
                 'other_user': other,
-                'display_name': display_name
+                'display_name': display_name,
+                'unread_count': unread_count
             })
         
         # Sorting logic
@@ -94,6 +100,8 @@ class RoomDetailView(LoginRequiredMixin, View):
             display_name = index_helper._get_display_name(room.get_other_user(request.user))
         else:
             display_name = room.group_name or room.name
+            
+        Notification.objects.filter(user=request.user, message__room=room, is_read=False).update(is_read=True)
             
         available_contacts = []
         if not room.is_private and request.user == room.admin:

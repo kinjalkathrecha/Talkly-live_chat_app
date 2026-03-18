@@ -99,6 +99,13 @@
                         return;
                     }
 
+                    
+                    const badgeEl = document.getElementById(`unread-count-${data.room_name}`);
+                    if (badgeEl) {
+                        badgeEl.innerText = data.unread_count;
+                        badgeEl.style.display = 'inline-block';
+                    }
+
                     showToastNotification(data.sender, data.message, data.room_name);
                 }
             };
@@ -138,7 +145,7 @@
                     audio.play().catch(e => console.log("Audio play prevented by browser policy"));
                 } catch(e) {}
 
-                // Remove from DOM after it hides
+                
                 toastElement.addEventListener('hidden.bs.toast', function () {
                     toastElement.remove();
                 });

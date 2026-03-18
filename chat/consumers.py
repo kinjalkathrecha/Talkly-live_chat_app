@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Room, Message, UserProfile
+from .models import Room, Message, UserProfile, Notification
 import json
 from django.utils import timezone
 
@@ -143,6 +143,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             participants = await self.get_room_participants(self.room_name)
             for participant in participants:
                 if participant.id != user.id:
+                    # Create Notification in DB and get unread count
+                    unread_count = await self.create_notification(participant, saved_msg)
+
                     notify_group = f"notify_{participant.id}"
                     await self.channel_layer.group_send(
                         notify_group,
@@ -150,7 +153,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             "type": "global_notification",
                             "message": message,
                             "sender": user.username if user.is_authenticated else "Anonymous",
-                            "room_name": self.room_name
+                            "room_name": self.room_name,
+                            "unread_count": unread_count
                         }
                     )
         
@@ -226,6 +230,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return Message.objects.get(id=message_id).status_icon_html
         except Message.DoesNotExist:
             return ""
+
+    @database_sync_to_async
+    def create_notification(self, user, message):
+        Notification.objects.create(user=user, message=message)
+        # Return the total unread count for this user in this room
+        return Notification.objects.filter(user=user, message__room=message.room, is_read=False).count()
 
     @database_sync_to_async
     def update_message_status(self, message_id, status):
@@ -318,5 +328,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "type": "notification",
             "message": event["message"],
             "sender": event["sender"],
-            "room_name": event["room_name"]
+            "room_name": event["room_name"],
+            "unread_count": event.get("unread_count", 0)
         }))

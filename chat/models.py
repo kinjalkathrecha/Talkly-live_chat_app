@@ -79,6 +79,18 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.user.username if self.user else 'Anonymous'} ({self.status}): {self.content[:20]}"
 
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.user.username} - Read: {self.is_read}"
+
 class Contact(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="contacts")
     first_name = models.CharField(max_length=100, default="")
